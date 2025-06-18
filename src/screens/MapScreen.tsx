@@ -15,6 +15,8 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { MapScreenNavigationProp } from '../types/navigation';
 
 // Market data for markers
 const markets = [
@@ -77,6 +79,7 @@ export default function MapScreen() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const mapRef = useRef<MapView>(null);
+  const navigation = useNavigation<MapScreenNavigationProp>();
 
   // Filter markets based on search query and active filters
   const filteredMarkets = useMemo(() => {
@@ -168,7 +171,10 @@ export default function MapScreen() {
   };
 
   const handleViewDetails = () => {
-    console.log('View details for:', selectedMarket?.name);
+    if (selectedMarket) {
+      navigation.navigate('MarketDetail', { market: selectedMarket });
+      setSelectedMarket(null); // Close the modal
+    }
   };
 
   const handleFindNearMe = async () => {

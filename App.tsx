@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-import MapScreen from './src/screens/MapScreen';
+import MapStack from './src/navigation/MapStack';
 import CommunityScreen from './src/screens/CommunityScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
@@ -42,7 +42,7 @@ export default function App() {
       >
         <Tab.Screen 
           name="Map" 
-          component={MapScreen} 
+          component={MapStack} 
           options={{ title: 'Farmers Markets' }}
         />
         <Tab.Screen 
