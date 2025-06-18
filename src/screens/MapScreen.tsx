@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,12 @@ import {
   SafeAreaView,
   Modal,
   Pressable,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 
 // Market data for markers
 const markets = [
@@ -70,6 +74,9 @@ export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterType[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<typeof markets[0] | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   // Filter markets based on search query and active filters
   const filteredMarkets = useMemo(() => {
@@ -164,6 +171,48 @@ export default function MapScreen() {
     console.log('View details for:', selectedMarket?.name);
   };
 
+  const handleFindNearMe = async () => {
+    try {
+      setIsLoadingLocation(true);
+
+      // Request permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission Required',
+          'Please enable location services to find markets near you.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Get current location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setUserLocation(location);
+
+      // Animate map to user location
+      mapRef.current?.animateToRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }, 1000);
+
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Unable to get your location. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Search Bar */}
@@ -212,6 +261,7 @@ export default function MapScreen() {
       {/* Map */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           provider={PROVIDER_GOOGLE}
           initialRegion={{
@@ -220,7 +270,7 @@ export default function MapScreen() {
             latitudeDelta: 20,
             longitudeDelta: 20,
           }}
-          showsUserLocation={false}
+          showsUserLocation={true}
           showsMyLocationButton={false}
         >
           {filteredMarkets.map((market) => (
@@ -234,6 +284,19 @@ export default function MapScreen() {
             />
           ))}
         </MapView>
+
+        {/* Find Near Me Button */}
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={handleFindNearMe}
+          disabled={isLoadingLocation}
+        >
+          {isLoadingLocation ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Ionicons name="location" size={24} color="#fff" />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Nearby Markets Section */}
@@ -374,6 +437,25 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2E8B57',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   nearbyContainer: {
     padding: 16,
