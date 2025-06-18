@@ -11,6 +11,7 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -18,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { MapScreenNavigationProp } from '../types/navigation';
 import { openMapsApp } from '../utils/deviceActions';
+import { useFavorites } from '../hooks/useFavorites';
 
 // Market data for markers
 const markets = [
@@ -82,20 +84,21 @@ export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const navigation = useNavigation<MapScreenNavigationProp>();
   const [isOpeningDirections, setIsOpeningDirections] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const { favorites, toggleFavorite, checkIsFavorite } = useFavorites();
 
   // Filter markets based on search query and active filters
   const filteredMarkets = useMemo(() => {
     let filtered = markets;
-    
-    // Apply search filter
+    if (favoritesOnly) {
+      filtered = filtered.filter(market => checkIsFavorite(market.id.toString()));
+    }
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(market => 
         market.name.toLowerCase().includes(query)
       );
     }
-    
-    // Apply attribute filters
     if (activeFilters.length > 0) {
       filtered = filtered.filter(market => 
         activeFilters.every(filter => {
@@ -112,9 +115,8 @@ export default function MapScreen() {
         })
       );
     }
-    
     return filtered;
-  }, [searchQuery, activeFilters]);
+  }, [searchQuery, activeFilters, favoritesOnly, favorites]);
 
   const handleMarkerPress = (market: typeof markets[0]) => {
     setSelectedMarket(market);
@@ -132,17 +134,17 @@ export default function MapScreen() {
     );
   };
 
-  const getFilterButtonStyle = (filter: FilterType) => {
+  const getFilterButtonStyle = (filter: FilterType | 'favorites') => {
     return [
       styles.filterButton,
-      activeFilters.includes(filter) && styles.filterButtonActive
+      (activeFilters.includes(filter as FilterType) || (filter === 'favorites' && favoritesOnly)) && styles.filterButtonActive
     ];
   };
 
-  const getFilterButtonTextStyle = (filter: FilterType) => {
+  const getFilterButtonTextStyle = (filter: FilterType | 'favorites') => {
     return [
       styles.filterButtonText,
-      activeFilters.includes(filter) && styles.filterButtonTextActive
+      (activeFilters.includes(filter as FilterType) || (filter === 'favorites' && favoritesOnly)) && styles.filterButtonTextActive
     ];
   };
 
@@ -231,6 +233,30 @@ export default function MapScreen() {
     }
   };
 
+  // Market Card Heart Icon
+  const HeartIcon = ({ marketId }: { marketId: string }) => {
+    const isFav = checkIsFavorite(marketId);
+    const scale = new Animated.Value(1);
+    const handlePress = () => {
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.3, duration: 120, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true })
+      ]).start();
+      toggleFavorite(marketId);
+    };
+    return (
+      <TouchableOpacity onPress={handlePress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Ionicons
+            name={isFav ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isFav ? '#E74C3C' : '#bbb'}
+          />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Search Bar */}
@@ -273,6 +299,12 @@ export default function MapScreen() {
           onPress={() => toggleFilter('petFriendly')}
         >
           <Text style={getFilterButtonTextStyle('petFriendly')}>Pet Friendly</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={getFilterButtonStyle('favorites')}
+          onPress={() => setFavoritesOnly(fav => !fav)}
+        >
+          <Text style={getFilterButtonTextStyle('favorites')}>Favorites Only</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -327,7 +359,10 @@ export default function MapScreen() {
         <ScrollView style={styles.marketCardsContainer}>
           {filteredMarkets.map((market) => (
             <View key={market.id} style={styles.marketCard}>
-              <Text style={styles.marketName}>{market.name}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.marketName}>{market.name}</Text>
+                <HeartIcon marketId={market.id.toString()} />
+              </View>
               <Text style={styles.marketInfo}>Open Today • {market.hours}</Text>
               <Text style={styles.marketDistance}>{market.distance}</Text>
               {renderAttributeBadges(market)}
@@ -357,7 +392,10 @@ export default function MapScreen() {
                   <Text style={styles.closeButtonText}>✕</Text>
                 </TouchableOpacity>
 
-                <Text style={styles.modalTitle}>{selectedMarket.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.modalTitle}>{selectedMarket.name}</Text>
+                  <HeartIcon marketId={selectedMarket.id.toString()} />
+                </View>
                 
                 <View style={styles.statusContainer}>
                   <View style={[

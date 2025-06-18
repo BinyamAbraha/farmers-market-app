@@ -10,10 +10,12 @@ import {
   Share,
   Platform,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { MarketDetailScreenNavigationProp } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { openMapsApp, makePhoneCall, openWebsite, shareMarket } from '../utils/deviceActions';
+import { useFavorites } from '../hooks/useFavorites';
 
 // Sample data for vendors
 const vendors = [
@@ -101,6 +103,8 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
   const [isOpeningWebsite, setIsOpeningWebsite] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
+  const { checkIsFavorite, toggleFavorite } = useFavorites();
+
   const handleGetDirections = async () => {
     setIsOpeningDirections(true);
     try {
@@ -156,6 +160,29 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
     );
   };
 
+  const HeartIcon = ({ marketId }: { marketId: string }) => {
+    const isFav = checkIsFavorite(marketId);
+    const scale = new Animated.Value(1);
+    const handlePress = () => {
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.3, duration: 120, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true })
+      ]).start();
+      toggleFavorite(marketId);
+    };
+    return (
+      <TouchableOpacity onPress={handlePress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Ionicons
+            name={isFav ? 'heart' : 'heart-outline'}
+            size={28}
+            color={isFav ? '#E74C3C' : '#bbb'}
+          />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Hero Section */}
@@ -165,7 +192,10 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
           style={styles.heroImage}
         />
         <View style={styles.heroOverlay}>
-          <Text style={styles.marketName}>{market.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={styles.marketName}>{market.name}</Text>
+            <HeartIcon marketId={market.id.toString()} />
+          </View>
           <View style={[
             styles.statusBadge,
             { backgroundColor: market.isOpen ? '#4CAF50' : '#F44336' }
