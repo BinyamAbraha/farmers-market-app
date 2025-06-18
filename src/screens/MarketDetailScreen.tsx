@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   Linking,
   Share,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { MarketDetailScreenNavigationProp } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
+import { openMapsApp, makePhoneCall, openWebsite, shareMarket } from '../utils/deviceActions';
 
 // Sample data for vendors
 const vendors = [
@@ -94,29 +96,48 @@ type MarketDetailScreenProps = {
 export default function MarketDetailScreen({ navigation, route }: MarketDetailScreenProps) {
   const { market } = route.params;
 
-  const handleGetDirections = () => {
-    const url = Platform.select({
-      ios: `maps:${market.coordinate.latitude},${market.coordinate.longitude}?q=${market.name}`,
-      android: `geo:${market.coordinate.latitude},${market.coordinate.longitude}?q=${market.name}`,
-    });
-    Linking.openURL(url!);
+  const [isOpeningDirections, setIsOpeningDirections] = useState(false);
+  const [isCalling, setIsCalling] = useState(false);
+  const [isOpeningWebsite, setIsOpeningWebsite] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleGetDirections = async () => {
+    setIsOpeningDirections(true);
+    try {
+      await openMapsApp(
+        market.coordinate.latitude,
+        market.coordinate.longitude,
+        market.name
+      );
+    } finally {
+      setIsOpeningDirections(false);
+    }
   };
 
-  const handleCallPhone = () => {
-    Linking.openURL(`tel:${market.phone}`);
+  const handleCallPhone = async () => {
+    setIsCalling(true);
+    try {
+      await makePhoneCall(market.phone);
+    } finally {
+      setIsCalling(false);
+    }
   };
 
-  const handleVisitWebsite = () => {
-    Linking.openURL(market.website);
+  const handleVisitWebsite = async () => {
+    setIsOpeningWebsite(true);
+    try {
+      await openWebsite(market.website);
+    } finally {
+      setIsOpeningWebsite(false);
+    }
   };
 
   const handleShareMarket = async () => {
+    setIsSharing(true);
     try {
-      await Share.share({
-        message: `Check out ${market.name} at ${market.address}! ${market.website}`,
-      });
-    } catch (error) {
-      console.error('Error sharing market:', error);
+      await shareMarket(market.name, market.address, market.fullHours);
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -227,30 +248,58 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
         <TouchableOpacity
           style={[styles.actionButton, styles.directionsButton]}
           onPress={handleGetDirections}
+          disabled={isOpeningDirections}
         >
-          <Ionicons name="navigate" size={24} color="#fff" />
-          <Text style={styles.actionButtonText}>Get Directions</Text>
+          {isOpeningDirections ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="navigate" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Get Directions</Text>
+            </>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.phoneButton]}
           onPress={handleCallPhone}
+          disabled={isCalling}
         >
-          <Ionicons name="call" size={24} color="#fff" />
-          <Text style={styles.actionButtonText}>Call</Text>
+          {isCalling ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="call" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Call</Text>
+            </>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.websiteButton]}
           onPress={handleVisitWebsite}
+          disabled={isOpeningWebsite}
         >
-          <Ionicons name="globe" size={24} color="#fff" />
-          <Text style={styles.actionButtonText}>Website</Text>
+          {isOpeningWebsite ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="globe" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Website</Text>
+            </>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.shareButton]}
           onPress={handleShareMarket}
+          disabled={isSharing}
         >
-          <Ionicons name="share" size={24} color="#fff" />
-          <Text style={styles.actionButtonText}>Share</Text>
+          {isSharing ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="share" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Share</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>

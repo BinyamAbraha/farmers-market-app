@@ -17,6 +17,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { MapScreenNavigationProp } from '../types/navigation';
+import { openMapsApp } from '../utils/deviceActions';
 
 // Market data for markers
 const markets = [
@@ -80,6 +81,7 @@ export default function MapScreen() {
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const mapRef = useRef<MapView>(null);
   const navigation = useNavigation<MapScreenNavigationProp>();
+  const [isOpeningDirections, setIsOpeningDirections] = useState(false);
 
   // Filter markets based on search query and active filters
   const filteredMarkets = useMemo(() => {
@@ -166,8 +168,18 @@ export default function MapScreen() {
     );
   };
 
-  const handleGetDirections = () => {
-    console.log('Get directions to:', selectedMarket?.name);
+  const handleGetDirections = async () => {
+    if (!selectedMarket) return;
+    setIsOpeningDirections(true);
+    try {
+      await openMapsApp(
+        selectedMarket.coordinate.latitude,
+        selectedMarket.coordinate.longitude,
+        selectedMarket.name
+      );
+    } finally {
+      setIsOpeningDirections(false);
+    }
   };
 
   const handleViewDetails = () => {
@@ -366,8 +378,13 @@ export default function MapScreen() {
                   <TouchableOpacity 
                     style={[styles.modalButton, styles.directionsButton]}
                     onPress={handleGetDirections}
+                    disabled={isOpeningDirections}
                   >
-                    <Text style={styles.modalButtonText}>Get Directions</Text>
+                    {isOpeningDirections ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.modalButtonText}>Get Directions</Text>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[styles.modalButton, styles.detailsButton]}
