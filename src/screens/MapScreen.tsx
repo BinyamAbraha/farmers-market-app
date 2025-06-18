@@ -7,6 +7,8 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Modal,
+  Pressable,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -23,7 +25,10 @@ const markets = [
     distance: '1.2 miles away',
     organic: true,
     acceptsSnap: true,
-    petFriendly: false
+    petFriendly: false,
+    address: '123 Broadway, New York, NY 10001',
+    fullHours: 'Monday-Saturday: 9:00 AM - 5:00 PM\nSunday: 10:00 AM - 4:00 PM',
+    isOpen: true
   },
   {
     id: 2,
@@ -36,7 +41,10 @@ const markets = [
     distance: '2.0 miles away',
     organic: false,
     acceptsSnap: true,
-    petFriendly: true
+    petFriendly: true,
+    address: '456 Market Street, San Francisco, CA 94105',
+    fullHours: 'Monday-Friday: 7:00 AM - 4:00 PM\nSaturday: 8:00 AM - 5:00 PM\nSunday: Closed',
+    isOpen: true
   },
   {
     id: 3,
@@ -49,7 +57,10 @@ const markets = [
     distance: '0.5 miles away',
     organic: true,
     acceptsSnap: false,
-    petFriendly: true
+    petFriendly: true,
+    address: '789 Michigan Avenue, Chicago, IL 60601',
+    fullHours: 'Monday-Sunday: 8:00 AM - 6:00 PM',
+    isOpen: false
   }
 ];
 
@@ -58,6 +69,7 @@ type FilterType = 'organic' | 'acceptsSnap' | 'petFriendly';
 export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterType[]>([]);
+  const [selectedMarket, setSelectedMarket] = useState<typeof markets[0] | null>(null);
 
   // Filter markets based on search query and active filters
   const filteredMarkets = useMemo(() => {
@@ -92,8 +104,8 @@ export default function MapScreen() {
     return filtered;
   }, [searchQuery, activeFilters]);
 
-  const handleMarkerPress = (marketName: string) => {
-    console.log('Selected market:', marketName);
+  const handleMarkerPress = (market: typeof markets[0]) => {
+    setSelectedMarket(market);
   };
 
   const handleClearSearch = () => {
@@ -142,6 +154,14 @@ export default function MapScreen() {
         )}
       </View>
     );
+  };
+
+  const handleGetDirections = () => {
+    console.log('Get directions to:', selectedMarket?.name);
+  };
+
+  const handleViewDetails = () => {
+    console.log('View details for:', selectedMarket?.name);
   };
 
   return (
@@ -210,7 +230,7 @@ export default function MapScreen() {
               title={market.name}
               description={`Open Today • ${market.hours}`}
               pinColor="#2E8B57"
-              onPress={() => handleMarkerPress(market.name)}
+              onPress={() => handleMarkerPress(market)}
             />
           ))}
         </MapView>
@@ -234,6 +254,64 @@ export default function MapScreen() {
           ))}
         </ScrollView>
       </View>
+
+      {/* Market Detail Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={selectedMarket !== null}
+        onRequestClose={() => setSelectedMarket(null)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setSelectedMarket(null)}
+        >
+          <Pressable style={styles.modalContent}>
+            {selectedMarket && (
+              <>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setSelectedMarket(null)}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.modalTitle}>{selectedMarket.name}</Text>
+                
+                <View style={styles.statusContainer}>
+                  <View style={[
+                    styles.statusIndicator,
+                    { backgroundColor: selectedMarket.isOpen ? '#4CAF50' : '#F44336' }
+                  ]} />
+                  <Text style={styles.statusText}>
+                    {selectedMarket.isOpen ? 'Open' : 'Closed'}
+                  </Text>
+                </View>
+
+                <Text style={styles.modalAddress}>{selectedMarket.address}</Text>
+                <Text style={styles.modalHours}>{selectedMarket.fullHours}</Text>
+
+                {renderAttributeBadges(selectedMarket)}
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity 
+                    style={[styles.modalButton, styles.directionsButton]}
+                    onPress={handleGetDirections}
+                  >
+                    <Text style={styles.modalButtonText}>Get Directions</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.modalButton, styles.detailsButton]}
+                    onPress={handleViewDetails}
+                  >
+                    <Text style={styles.modalButtonText}>View Details</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -366,5 +444,93 @@ const styles = StyleSheet.create({
   },
   petBadge: {
     backgroundColor: '#E2844A',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    padding: 8,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#666',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    paddingRight: 24,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  modalAddress: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  modalHours: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  directionsButton: {
+    backgroundColor: '#2E8B57',
+  },
+  detailsButton: {
+    backgroundColor: '#4A90E2',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
