@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
-import { MarketDetailScreenNavigationProp } from '../types/navigation';
+import { MarketDetailScreenNavigationProp, MarketDetailScreenRouteProp } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { openMapsApp, makePhoneCall, openWebsite, shareMarket } from '../utils/deviceActions';
 import { useFavorites } from '../hooks/useFavorites';
@@ -95,7 +95,12 @@ type MarketDetailScreenProps = {
   };
 };
 
-export default function MarketDetailScreen({ navigation, route }: MarketDetailScreenProps) {
+interface MarketDetailProps {
+  navigation: MarketDetailScreenNavigationProp;
+  route: MarketDetailScreenRouteProp;
+}
+
+export default function MarketDetailScreen({ navigation, route }: MarketDetailProps) {
   const { market } = route.params;
 
   const [isOpeningDirections, setIsOpeningDirections] = useState(false);
@@ -121,7 +126,9 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
   const handleCallPhone = async () => {
     setIsCalling(true);
     try {
-      await makePhoneCall(market.phone);
+      if (market.phone) {
+        await makePhoneCall(market.phone);
+      }
     } finally {
       setIsCalling(false);
     }
@@ -130,7 +137,9 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
   const handleVisitWebsite = async () => {
     setIsOpeningWebsite(true);
     try {
-      await openWebsite(market.website);
+      if (market.website) {
+        await openWebsite(market.website);
+      }
     } finally {
       setIsOpeningWebsite(false);
     }
@@ -139,7 +148,7 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
   const handleShareMarket = async () => {
     setIsSharing(true);
     try {
-      await shareMarket(market.name, market.address, market.fullHours);
+      await shareMarket(market.name, market.address, market.hours || 'Hours not available');
     } finally {
       setIsSharing(false);
     }
@@ -215,7 +224,7 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="time" size={24} color="#2E8B57" />
-          <Text style={styles.infoText}>{market.fullHours}</Text>
+          <Text style={styles.infoText}>{market.hours || 'Hours not available'}</Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="call" size={24} color="#2E8B57" />
@@ -229,7 +238,7 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailSc
 
       {/* Filter Badges */}
       <View style={styles.badgesContainer}>
-        {market.organic && (
+        {market.organicOnly && (
           <View style={[styles.badge, styles.organicBadge]}>
             <Text style={styles.badgeText}>Organic</Text>
           </View>

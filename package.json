@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@mapbox/geo-viewport": "^0.5.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.3.15",
     "@react-navigation/native": "^7.1.11",
@@ -16,6 +17,7 @@
     "@supabase/supabase-js": "^2.50.0",
     "@tanstack/react-query": "^5.80.7",
     "expo": "~53.0.11",
+    "expo-haptics": "~14.1.4",
     "expo-location": "~18.1.5",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
@@ -23,16 +25,18 @@
     "react-native-elements": "^3.4.3",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-image-picker": "^8.2.1",
+    "react-native-map-clustering": "^3.4.2",
     "react-native-maps": "1.20.1",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-vector-icons": "^10.2.0",
-    "zustand": "^5.0.5",
-    "expo-haptics": "~14.1.4"
+    "supercluster": "^8.0.1",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
+    "@types/supercluster": "^7.1.3",
     "typescript": "~5.8.3"
   },
   "private": true

@@ -1,59 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { useFavorites } from '../hooks/useFavorites';
+import { useMarketData } from '../hooks/useMarketData';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../types/navigation';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { RootTabParamList } from '../types/navigation';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { Market } from '../types/index';
 
-// Import or define the same markets array as in MapScreen for demo
-const markets = [
-  {
-    id: 1,
-    name: 'Downtown Farmers Market',
-    coordinate: { latitude: 40.7589, longitude: -73.9851 },
-    hours: '9:00 AM - 5:00 PM',
-    distance: '1.2 miles away',
-    organic: true,
-    acceptsSnap: true,
-    petFriendly: false,
-    address: '123 Broadway, New York, NY 10001',
-    fullHours: 'Monday-Saturday: 9:00 AM - 5:00 PM\nSunday: 10:00 AM - 4:00 PM',
-    isOpen: true
-  },
-  {
-    id: 2,
-    name: 'Riverside Market',
-    coordinate: { latitude: 37.7749, longitude: -122.4194 },
-    hours: '7:00 AM - 4:00 PM',
-    distance: '2.0 miles away',
-    organic: false,
-    acceptsSnap: true,
-    petFriendly: true,
-    address: '456 Market Street, San Francisco, CA 94105',
-    fullHours: 'Monday-Friday: 7:00 AM - 4:00 PM\nSaturday: 8:00 AM - 5:00 PM\nSunday: Closed',
-    isOpen: true
-  },
-  {
-    id: 3,
-    name: 'Community Garden Market',
-    coordinate: { latitude: 41.8781, longitude: -87.6298 },
-    hours: '8:00 AM - 6:00 PM',
-    distance: '0.5 miles away',
-    organic: true,
-    acceptsSnap: false,
-    petFriendly: true,
-    address: '789 Michigan Avenue, Chicago, IL 60601',
-    fullHours: 'Monday-Sunday: 8:00 AM - 6:00 PM',
-    isOpen: false
-  }
-];
-
-type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Profile'>;
+type ProfileScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Profile'>;
 
 export default function ProfileScreen() {
   const { favorites, toggleFavorite, checkIsFavorite } = useFavorites();
-  const navigation = useNavigation<any>();
+  const { markets } = useMarketData();
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
 
   const favoriteMarkets = markets.filter(m => favorites.includes(m.id.toString()));
 
@@ -80,14 +40,14 @@ export default function ProfileScreen() {
     );
   };
 
-  const renderAttributeBadges = (market: typeof markets[0]) => (
+  const renderAttributeBadges = (market: Market) => (
     <View style={styles.badgeContainer}>
-      {market.organic && (
+      {market.organicOnly && (
         <View style={[styles.badge, styles.organicBadge]}>
           <Text style={styles.badgeText}>Organic</Text>
         </View>
       )}
-      {market.acceptsSnap && (
+      {(market.acceptsSnap || market.acceptsWic) && (
         <View style={[styles.badge, styles.snapBadge]}>
           <Text style={styles.badgeText}>SNAP/WIC</Text>
         </View>
@@ -114,7 +74,10 @@ export default function ProfileScreen() {
             <TouchableOpacity
               key={market.id}
               style={styles.marketCard}
-              onPress={() => navigation.navigate('MarketDetail', { market })}
+              onPress={() => navigation.navigate('Map', { 
+                screen: 'MarketDetail', 
+                params: { market } 
+              })}
               activeOpacity={0.8}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -123,7 +86,7 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.marketInfo}>{market.address}</Text>
               <Text style={styles.marketStatus}>
-                {market.isOpen ? 'Open Now' : 'Closed'}
+                {market.isOpen ? '🟢 Open Now' : '🔴 Closed'}
               </Text>
               {renderAttributeBadges(market)}
             </TouchableOpacity>

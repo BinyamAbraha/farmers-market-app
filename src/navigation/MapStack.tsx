@@ -2,9 +2,9 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import MapScreen from '../screens/MapScreen';
 import MarketDetailScreen from '../screens/MarketDetailScreen';
-import { RootStackParamList } from '../types/navigation';
+import { MapStackParamList } from '../types/navigation';
 
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<MapStackParamList>();
 
 export default function MapStack() {
   return (

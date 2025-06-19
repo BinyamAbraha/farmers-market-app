@@ -1,28 +1,44 @@
-import { StackNavigationProp } from '@react-navigation/stack';
+// src/types/navigation.ts
 
-export type RootStackParamList = {
+import { Market } from './index';
+import { NavigatorScreenParams } from '@react-navigation/native';
+
+export type MapStackParamList = {
   Map: undefined;
   MarketDetail: {
-    market: {
-      id: number;
-      name: string;
-      coordinate: {
-        latitude: number;
-        longitude: number;
-      };
-      hours: string;
-      distance: string;
-      organic: boolean;
-      acceptsSnap: boolean;
-      petFriendly: boolean;
-      address: string;
-      fullHours: string;
-      isOpen: boolean;
-      phone?: string;
-      website?: string;
-    };
+    market: Market;
   };
 };
 
-export type MapScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Map'>;
-export type MarketDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MarketDetail'>; 
+export type RootTabParamList = {
+  Map: NavigatorScreenParams<MapStackParamList>;
+  Community: undefined;
+  Profile: undefined;
+};
+
+// Navigation prop types for screens
+import { StackNavigationProp } from '@react-navigation/stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { RouteProp } from '@react-navigation/native';
+
+// Map Stack Navigation Props
+export type MapScreenNavigationProp = StackNavigationProp<MapStackParamList, 'Map'>;
+export type MarketDetailScreenNavigationProp = StackNavigationProp<MapStackParamList, 'MarketDetail'>;
+export type MarketDetailScreenRouteProp = RouteProp<MapStackParamList, 'MarketDetail'>;
+
+// Tab Navigation Props
+export type ProfileScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Profile'>;
+
+// Combined navigation prop types for screens that need both
+export interface MapScreenProps {
+  navigation: MapScreenNavigationProp;
+}
+
+export interface MarketDetailScreenProps {
+  navigation: MarketDetailScreenNavigationProp;
+  route: MarketDetailScreenRouteProp;
+}
+
+export interface ProfileScreenProps {
+  navigation: ProfileScreenNavigationProp;
+}
