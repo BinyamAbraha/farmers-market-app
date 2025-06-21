@@ -5,6 +5,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type ExploreStackParamList = {
   ExploreMain: undefined;
+  MapView: undefined;
   MarketDetail: {
     market: Market;
   };

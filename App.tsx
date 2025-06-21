@@ -6,6 +6,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import MapScreen from './src/screens/MapScreen';
+import ExploreScreen from './src/screens/ExploreScreen';
 import MarketDetailScreen from './src/screens/MarketDetailScreen';
 import PhotoHubScreen from './src/screens/PhotoHubScreen';
 import ListsScreen from './src/screens/ListsScreen';
@@ -22,9 +23,23 @@ function ExploreStack() {
     <Stack.Navigator>
       <Stack.Screen
         name="ExploreMain"
-        component={MapScreen}
+        component={ExploreScreen}
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="MapView"
+        component={MapScreen}
+        options={{
+          title: 'Map View',
+          headerStyle: {
+            backgroundColor: '#2E8B57',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       />
       <Stack.Screen
