@@ -2,27 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import MapScreen from './src/screens/MapScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
+import ShareScreen from './src/screens/ShareScreen';
+import CommunityScreen from './src/screens/CommunityScreen';
 import MarketDetailScreen from './src/screens/MarketDetailScreen';
 import PhotoHubScreen from './src/screens/PhotoHubScreen';
-import ListsScreen from './src/screens/ListsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import MarketHaulScreen from './src/screens/MarketHaulScreen';
 import LaunchScreen from './src/components/LaunchScreen';
+import CustomTabBar from './src/components/CustomTabBar';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Explore Stack (formerly Map Stack)
-function ExploreStack() {
+// Discover Stack (content-first feed)
+function DiscoverStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="ExploreMain"
+        name="DiscoverMain"
         component={ExploreScreen}
         options={{
           headerShown: false,
@@ -60,13 +61,57 @@ function ExploreStack() {
   );
 }
 
-// Community Stack
+// Map Stack (dedicated map utility)
+function MapStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="MapMain"
+        component={MapScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="MarketDetail"
+        component={MarketDetailScreen}
+        options={{
+          title: 'Market Details',
+          headerStyle: {
+            backgroundColor: '#2E8B57',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// Share Stack (photo capture and sharing)
+function ShareStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ShareMain"
+        component={ShareScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// Community Stack (social features)
 function CommunityStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
         name="CommunityMain"
-        component={PhotoHubScreen}
+        component={CommunityScreen}
         options={{
           headerShown: false,
         }}
@@ -89,100 +134,66 @@ function CommunityStack() {
   );
 }
 
+// Profile Stack (user hub)
+function ProfileStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function MainTabNavigator() {
-  const insets = useSafeAreaInsets();
-  
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName: keyof typeof Ionicons.glyphMap;
-            
-            switch (route.name) {
-              case 'Explore':
-                iconName = focused ? 'map' : 'map-outline';
-                break;
-              case 'Community':
-                iconName = focused ? 'camera' : 'camera-outline';
-                break;
-              case 'MyLists':
-                iconName = focused ? 'list' : 'list-outline';
-                break;
-              case 'Profile':
-                iconName = focused ? 'person' : 'person-outline';
-                break;
-              default:
-                iconName = 'help-outline';
-            }
-            
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: '#2E8B57',
-          tabBarInactiveTintColor: '#999',
-          tabBarStyle: {
-            backgroundColor: '#fff',
-            borderTopWidth: 1,
-            borderTopColor: '#f0f0f0',
-            paddingBottom: Math.max(insets.bottom, 20), // Dynamic safe area with minimum
-            paddingTop: 8,
-            height: Math.max(60 + insets.bottom, 80), // Dynamic height based on safe area
-            position: 'absolute',
-            bottom: 0,
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '500',
-            marginBottom: 3,
-          },
-          headerStyle: {
-            backgroundColor: '#2E8B57',
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '600',
-            fontSize: 18,
-          },
-        })}
-      >
-        <Tab.Screen
-          name="Explore"
-          options={{
-            title: '🗺️ Explore',
-            headerShown: false,
-          }}
-        >
-          {() => <ExploreStack />}
-        </Tab.Screen>
-        <Tab.Screen
-          name="Community"
-          options={{
-            title: '📸 Community',
-            headerShown: false,
-          }}
-        >
-          {() => <CommunityStack />}
-        </Tab.Screen>
-        <Tab.Screen
-          name="MyLists"
-          options={{
-            title: '📋 My Lists',
-            headerTitle: 'My Lists',
-          }}
-        >
-          {() => <ListsScreen />}
-        </Tab.Screen>
-        <Tab.Screen
-          name="Profile"
-          options={{
-            title: '👤 Profile',
-            headerTitle: 'Profile',
-          }}
-        >
-          {() => <ProfileScreen />}
-        </Tab.Screen>
-      </Tab.Navigator>
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+      initialRouteName="Discover"
+    >
+      <Tab.Screen
+        name="Discover"
+        component={DiscoverStack}
+        options={{
+          tabBarLabel: 'Discover',
+        }}
+      />
+      <Tab.Screen
+        name="Map"
+        component={MapStack}
+        options={{
+          tabBarLabel: 'Map',
+        }}
+      />
+      <Tab.Screen
+        name="Share"
+        component={ShareStack}
+        options={{
+          tabBarLabel: 'Share',
+        }}
+      />
+      <Tab.Screen
+        name="Community"
+        component={CommunityStack}
+        options={{
+          tabBarLabel: 'Community',
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        options={{
+          tabBarLabel: 'Profile',
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 

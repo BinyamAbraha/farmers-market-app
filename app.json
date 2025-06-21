@@ -50,6 +50,12 @@
           "photosPermission": "Allow Farmers Market App to access your photos to share market pictures.",
           "cameraPermission": "Allow Farmers Market App to access your camera to take market pictures."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Farmers Market App to access your camera to capture and share market experiences."
+        }
       ]
     ],
     "extra": {

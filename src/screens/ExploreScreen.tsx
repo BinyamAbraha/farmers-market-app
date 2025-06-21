@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
-import { MapScreenNavigationProp } from '../types/navigation';
+import { DiscoverScreenNavigationProp } from '../types/navigation';
 import { useMarketData } from '../hooks/useMarketData';
 import { marketService } from '../services/supabase';
 
@@ -63,7 +63,7 @@ const ExploreScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   const heroCarouselRef = useRef<FlatList>(null);
-  const navigation = useNavigation<MapScreenNavigationProp>();
+  const navigation = useNavigation<DiscoverScreenNavigationProp>();
   const { markets } = useMarketData();
 
   // Hero carousel data
