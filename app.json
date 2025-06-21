@@ -43,7 +43,19 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Farmers Market App to use your location."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Farmers Market App to access your photos to share market pictures.",
+          "cameraPermission": "Allow Farmers Market App to access your camera to take market pictures."
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "supabaseUrl": "https://dfdhblstxjjnosdsziba.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZGhibHN0eGpqbm9zZHN6aWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxNzgxMjgsImV4cCI6MjA2NTc1NDEyOH0.2QSeH2orryYFGUBXzBeDzxbweY5zejcKvgLzv0iHMYY",
+      "skipLaunchAnimation": false
+    }
   }
 }

@@ -38,6 +38,7 @@ export function useFavorites() {
 
   return {
     favorites,
+    favoriteMarkets: favorites, // Alias for compatibility
     loading,
     toggleFavorite,
     checkIsFavorite,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,18 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  Linking,
-  Share,
-  Platform,
   ActivityIndicator,
   Animated,
+  Alert,
 } from 'react-native';
-import { MarketDetailScreenNavigationProp, MarketDetailScreenRouteProp } from '../types/navigation';
+import { MarketDetailScreenNavigationProp } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { openMapsApp, makePhoneCall, openWebsite, shareMarket } from '../utils/deviceActions';
 import { useFavorites } from '../hooks/useFavorites';
+import PhotoCapture from '../components/PhotoCapture';
+import PhotoUpload from '../components/PhotoUpload';
+import PhotoGallery from '../components/PhotoGallery';
+import { MarketPhoto, photoService } from '../services/supabase';
 
 // Sample data for vendors
 const vendors = [
@@ -96,28 +98,97 @@ type MarketDetailScreenProps = {
 };
 
 interface MarketDetailProps {
-  navigation: MarketDetailScreenNavigationProp;
-  route: MarketDetailScreenRouteProp;
+  navigation: any;
+  route: any;
 }
 
 export default function MarketDetailScreen({ navigation, route }: MarketDetailProps) {
-  const { market } = route.params;
+  // Safe parameter extraction with fallbacks
+  const market = route?.params?.market;
+  
+  // Comprehensive safety check for market object
+  if (!market || !market.id || !market.name) {
+    console.error('MarketDetailScreen: Invalid market data:', { market, route: route?.params });
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 18, color: '#666' }}>Market information not available</Text>
+        <Text style={{ fontSize: 14, color: '#999', marginTop: 8, textAlign: 'center' }}>
+          Unable to load market details. Please try again.
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: 20, padding: 12, backgroundColor: '#2E8B57', borderRadius: 8 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: '#fff', fontWeight: '600' }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const [isOpeningDirections, setIsOpeningDirections] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
   const [isOpeningWebsite, setIsOpeningWebsite] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  
+  // Photo sharing states
+  const [marketPhotos, setMarketPhotos] = useState<MarketPhoto[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [captureVisible, setCaptureVisible] = useState(false);
+  const [uploadVisible, setUploadVisible] = useState(false);
+  const [selectedPhotoUri, setSelectedPhotoUri] = useState<string>('');
 
   const { checkIsFavorite, toggleFavorite } = useFavorites();
+
+  // Load market photos on component mount
+  useEffect(() => {
+    if (market?.id) {
+      loadMarketPhotos();
+    }
+  }, [market?.id]);
+
+  const loadMarketPhotos = async () => {
+    if (!market?.id) {
+      console.warn('Cannot load photos: No market ID available');
+      return;
+    }
+    
+    try {
+      setPhotosLoading(true);
+      const photos = await photoService.getMarketPhotos(market.id.toString());
+      setMarketPhotos(photos);
+    } catch (error) {
+      console.error('Error loading market photos:', error);
+      // Don't show error to user for photos, just log it
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
+
+  const handlePhotoSelected = (uri: string) => {
+    setSelectedPhotoUri(uri);
+    setUploadVisible(true);
+  };
+
+  const handleUploadComplete = (photo: MarketPhoto) => {
+    setMarketPhotos(prev => [photo, ...prev]);
+    Alert.alert('Success', 'Photo shared successfully!');
+  };
 
   const handleGetDirections = async () => {
     setIsOpeningDirections(true);
     try {
-      await openMapsApp(
-        market.coordinate.latitude,
-        market.coordinate.longitude,
-        market.name
-      );
+      const latitude = market.coordinate?.latitude || market.latitude || 0;
+      const longitude = market.coordinate?.longitude || market.longitude || 0;
+      
+      if (latitude === 0 && longitude === 0) {
+        Alert.alert('Error', 'Location coordinates not available for this market.');
+        return;
+      }
+      
+      await openMapsApp(latitude, longitude, market.name || 'Market');
+    } catch (error) {
+      console.error('Error opening directions:', error);
+      Alert.alert('Error', 'Unable to open directions. Please try again.');
     } finally {
       setIsOpeningDirections(false);
     }
@@ -126,9 +197,14 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
   const handleCallPhone = async () => {
     setIsCalling(true);
     try {
-      if (market.phone) {
+      if (market.phone && typeof market.phone === 'string' && market.phone.trim()) {
         await makePhoneCall(market.phone);
+      } else {
+        Alert.alert('Information', 'Phone number not available for this market.');
       }
+    } catch (error) {
+      console.error('Error making phone call:', error);
+      Alert.alert('Error', 'Unable to make phone call. Please try again.');
     } finally {
       setIsCalling(false);
     }
@@ -137,9 +213,14 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
   const handleVisitWebsite = async () => {
     setIsOpeningWebsite(true);
     try {
-      if (market.website) {
+      if (market.website && typeof market.website === 'string' && market.website.trim()) {
         await openWebsite(market.website);
+      } else {
+        Alert.alert('Information', 'Website not available for this market.');
       }
+    } catch (error) {
+      console.error('Error opening website:', error);
+      Alert.alert('Error', 'Unable to open website. Please try again.');
     } finally {
       setIsOpeningWebsite(false);
     }
@@ -148,7 +229,16 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
   const handleShareMarket = async () => {
     setIsSharing(true);
     try {
-      await shareMarket(market.name, market.address, market.hours || 'Hours not available');
+      const hoursText = typeof market.hours === 'string' 
+        ? market.hours 
+        : typeof market.hours === 'object' && market.hours !== null
+        ? JSON.stringify(market.hours) 
+        : 'Hours not available';
+      await shareMarket(
+        market.name || 'Unknown Market', 
+        market.address || 'Address not available', 
+        hoursText
+      );
     } finally {
       setIsSharing(false);
     }
@@ -202,15 +292,15 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
         />
         <View style={styles.heroOverlay}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.marketName}>{market.name}</Text>
-            <HeartIcon marketId={market.id.toString()} />
+            <Text style={styles.marketName}>{market.name || 'Unknown Market'}</Text>
+            <HeartIcon marketId={market.id?.toString() || '0'} />
           </View>
           <View style={[
             styles.statusBadge,
-            { backgroundColor: market.isOpen ? '#4CAF50' : '#F44336' }
+            { backgroundColor: market.isOpen === true ? '#4CAF50' : '#F44336' }
           ]}>
             <Text style={styles.statusText}>
-              {market.isOpen ? 'Open' : 'Closed'}
+              {market.isOpen === true ? 'Open' : 'Closed'}
             </Text>
           </View>
         </View>
@@ -220,35 +310,42 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
       <View style={styles.card}>
         <View style={styles.infoRow}>
           <Ionicons name="location" size={24} color="#2E8B57" />
-          <Text style={styles.infoText}>{market.address}</Text>
+          <Text style={styles.infoText}>{market.address || 'Address not available'}</Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="time" size={24} color="#2E8B57" />
-          <Text style={styles.infoText}>{market.hours || 'Hours not available'}</Text>
+          <Text style={styles.infoText}>
+            {typeof market.hours === 'string' 
+              ? market.hours 
+              : typeof market.hours === 'object' && market.hours !== null
+              ? JSON.stringify(market.hours) 
+              : 'Hours not available'
+            }
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="call" size={24} color="#2E8B57" />
-          <Text style={styles.infoText}>{market.phone}</Text>
+          <Text style={styles.infoText}>{market.phone || 'Phone not available'}</Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="globe" size={24} color="#2E8B57" />
-          <Text style={styles.infoText}>{market.website}</Text>
+          <Text style={styles.infoText}>{market.website || 'Website not available'}</Text>
         </View>
       </View>
 
       {/* Filter Badges */}
       <View style={styles.badgesContainer}>
-        {market.organicOnly && (
+        {market.organicOnly === true && (
           <View style={[styles.badge, styles.organicBadge]}>
             <Text style={styles.badgeText}>Organic</Text>
           </View>
         )}
-        {market.acceptsSnap && (
+        {(market.acceptsSnap === true || market.acceptsWic === true) && (
           <View style={[styles.badge, styles.snapBadge]}>
             <Text style={styles.badgeText}>SNAP/WIC</Text>
           </View>
         )}
-        {market.petFriendly && (
+        {market.petFriendly === true && (
           <View style={[styles.badge, styles.petBadge]}>
             <Text style={styles.badgeText}>Pet Friendly</Text>
           </View>
@@ -282,6 +379,34 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
         ))}
       </View>
 
+      {/* Photo Gallery Section */}
+      <View style={styles.section}>
+        <View style={styles.photoSectionHeader}>
+          <Text style={styles.sectionTitle}>Market Photos</Text>
+          <TouchableOpacity 
+            onPress={() => setCaptureVisible(true)}
+            style={styles.addPhotoButton}
+          >
+            <Ionicons name="camera" size={20} color="#2E8B57" />
+            <Text style={styles.addPhotoButtonText}>Add Photo</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {photosLoading ? (
+          <View style={styles.photosLoadingContainer}>
+            <ActivityIndicator size="small" color="#2E8B57" />
+            <Text style={styles.photosLoadingText}>Loading photos...</Text>
+          </View>
+        ) : (
+          <PhotoGallery
+            photos={marketPhotos}
+            onRefresh={loadMarketPhotos}
+            refreshing={photosLoading}
+            marketName={market.name}
+          />
+        )}
+      </View>
+
       {/* Action Buttons */}
       <View style={styles.actionButtonsContainer}>
         <TouchableOpacity
@@ -299,9 +424,11 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, styles.phoneButton]}
+          style={[styles.actionButton, styles.phoneButton, 
+            (!market.phone || !market.phone.trim()) && { opacity: 0.5 }
+          ]}
           onPress={handleCallPhone}
-          disabled={isCalling}
+          disabled={isCalling || !market.phone || !market.phone.trim()}
         >
           {isCalling ? (
             <ActivityIndicator color="#fff" />
@@ -313,9 +440,11 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, styles.websiteButton]}
+          style={[styles.actionButton, styles.websiteButton,
+            (!market.website || !market.website.trim()) && { opacity: 0.5 }
+          ]}
           onPress={handleVisitWebsite}
-          disabled={isOpeningWebsite}
+          disabled={isOpeningWebsite || !market.website || !market.website.trim()}
         >
           {isOpeningWebsite ? (
             <ActivityIndicator color="#fff" />
@@ -341,6 +470,23 @@ export default function MarketDetailScreen({ navigation, route }: MarketDetailPr
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Photo Capture Modal */}
+      <PhotoCapture
+        visible={captureVisible}
+        onClose={() => setCaptureVisible(false)}
+        onPhotoSelected={handlePhotoSelected}
+        marketId={market.id.toString()}
+      />
+
+      {/* Photo Upload Modal */}
+      <PhotoUpload
+        visible={uploadVisible}
+        onClose={() => setUploadVisible(false)}
+        onUploadComplete={handleUploadComplete}
+        photoUri={selectedPhotoUri}
+        marketId={market.id.toString()}
+      />
     </ScrollView>
   );
 }
@@ -540,5 +686,38 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     backgroundColor: '#666',
+  },
+  photoSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addPhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#e8f5e8',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#d0e8d0',
+  },
+  addPhotoButtonText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2E8B57',
+  },
+  photosLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  photosLoadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#666',
   },
 }); 
