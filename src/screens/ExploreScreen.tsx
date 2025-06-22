@@ -19,7 +19,8 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { DiscoverScreenNavigationProp } from '../types/navigation';
 import { useMarketData } from '../hooks/useMarketData';
-import { marketService } from '../services/supabase';
+import { marketService, vendorService, Vendor } from '../services/supabase';
+import VendorCard from '../components/VendorCard';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -61,6 +62,7 @@ const ExploreScreen: React.FC = () => {
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [marketCount, setMarketCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   
   const heroCarouselRef = useRef<FlatList>(null);
   const navigation = useNavigation<DiscoverScreenNavigationProp>();
@@ -96,33 +98,6 @@ const ExploreScreen: React.FC = () => {
     { id: '4', title: 'Near You', icon: 'location', count: 12, color: '#45B7D1' },
   ];
 
-  // Trending vendors data
-  const trendingVendors: Vendor[] = [
-    {
-      id: '1',
-      name: 'Green Valley Farm',
-      specialty: 'Organic Vegetables',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=100&h=100&fit=crop&crop=face',
-      followers: 1250
-    },
-    {
-      id: '2',
-      name: 'Sunrise Orchards',
-      specialty: 'Fresh Fruits',
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1607532941433-304659e8198a?w=100&h=100&fit=crop&crop=face',
-      followers: 890
-    },
-    {
-      id: '3',
-      name: 'Artisan Breads Co',
-      specialty: 'Baked Goods',
-      rating: 4.7,
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop&crop=face',
-      followers: 2100
-    }
-  ];
 
   // Seasonal items data
   const seasonalItems: SeasonalItem[] = [
@@ -194,6 +169,10 @@ const ExploreScreen: React.FC = () => {
     try {
       const supabaseMarkets = await marketService.getAllMarkets();
       setMarketCount(supabaseMarkets.length || 140);
+      
+      // Load sample vendor data
+      const sampleVendors = vendorService.getSampleVendors();
+      setVendors(sampleVendors);
     } catch (error) {
       console.error('Market data error:', error);
     }
@@ -225,6 +204,10 @@ const ExploreScreen: React.FC = () => {
       setIsRefreshing(false);
     }
   }, []);
+
+  const handleVendorPress = (vendor: Vendor) => {
+    navigation.navigate('VendorProfile', { vendor });
+  };
 
   const handleQuickAction = async (action: QuickAction) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -380,21 +363,39 @@ const ExploreScreen: React.FC = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.vendorsContainer}
       >
-        {trendingVendors.map((vendor) => (
-          <TouchableOpacity key={vendor.id} style={styles.vendorCard}>
-            <Image source={{ uri: vendor.image }} style={styles.vendorImage} />
-            <Text style={styles.vendorName}>{vendor.name}</Text>
-            <Text style={styles.vendorSpecialty}>{vendor.specialty}</Text>
-            <View style={styles.vendorStats}>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={12} color="#FFD700" />
-                <Text style={styles.ratingText}>{vendor.rating}</Text>
-              </View>
-              <TouchableOpacity style={styles.followButton}>
-                <Text style={styles.followButtonText}>Follow</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+        {vendors.slice(0, 3).map((vendor) => (
+          <VendorCard
+            key={vendor.id}
+            vendor={vendor}
+            onPress={handleVendorPress}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  // New Vendors Component
+  const renderNewVendors = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>🆕 New Vendors</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAllButton}>See All</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.vendorsContainer}
+      >
+        {vendors.slice(1, 3).map((vendor) => (
+          <VendorCard
+            key={vendor.id}
+            vendor={vendor}
+            onPress={handleVendorPress}
+            showDistance={true}
+            distance="2.1 mi"
+          />
         ))}
       </ScrollView>
     </View>
@@ -483,6 +484,7 @@ const ExploreScreen: React.FC = () => {
         {renderQuickActions()}
         {renderMapButton()}
         {renderTrendingVendors()}
+        {renderNewVendors()}
         {renderSeasonalItems()}
         {renderCommunityPreview()}
         

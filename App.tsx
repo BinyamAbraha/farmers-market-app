@@ -9,6 +9,7 @@ import ExploreScreen from './src/screens/ExploreScreen';
 import ShareScreen from './src/screens/ShareScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
 import MarketDetailScreen from './src/screens/MarketDetailScreen';
+import VendorProfileScreen from './src/screens/VendorProfileScreen';
 import PhotoHubScreen from './src/screens/PhotoHubScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import MarketHaulScreen from './src/screens/MarketHaulScreen';
@@ -55,6 +56,13 @@ function DiscoverStack() {
           headerTitleStyle: {
             fontWeight: '600',
           },
+        }}
+      />
+      <Stack.Screen
+        name="VendorProfile"
+        component={VendorProfileScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

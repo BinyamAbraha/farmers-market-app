@@ -40,6 +40,41 @@ export interface Vendor {
   contact_info?: any
   description?: string
   created_at: string
+  // Enhanced social features
+  cover_photo_url?: string
+  profile_photo_url?: string
+  bio?: string
+  follower_count: number
+  instagram_handle?: string
+  specialties: string[]
+  featured_products: string[]
+  operating_hours?: any
+  market_locations: string[]
+  verified: boolean
+  rating: number
+  review_count: number
+  phone?: string
+  website?: string
+  updated_at: string
+}
+
+export interface VendorFollower {
+  id: string
+  user_id: string
+  vendor_id: string
+  followed_at: string
+}
+
+export interface VendorPost {
+  id: string
+  vendor_id: string
+  content_type: 'photo' | 'story' | 'update'
+  image_url?: string
+  caption?: string
+  hashtags: string[]
+  likes_count: number
+  created_at: string
+  updated_at: string
 }
 
 export interface MarketPhoto {
@@ -355,5 +390,222 @@ export const photoService = {
       console.error('Report photo error:', error)
       throw error
     }
+  }
+}
+
+// Vendor service functions
+export const vendorService = {
+  // Get all vendors with enhanced data
+  async getAllVendors(): Promise<Vendor[]> {
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .order('follower_count', { ascending: false })
+    
+    if (error) {
+      console.error('Vendor fetch error:', error)
+      throw error
+    }
+    return data || []
+  },
+
+  // Get vendor by ID
+  async getVendorById(vendorId: string): Promise<Vendor | null> {
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .eq('id', vendorId)
+      .single()
+    
+    if (error) {
+      console.error('Vendor fetch error:', error)
+      return null
+    }
+    return data
+  },
+
+  // Get trending vendors (based on recent follower growth)
+  async getTrendingVendors(limit = 10): Promise<Vendor[]> {
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .order('follower_count', { ascending: false })
+      .limit(limit)
+    
+    if (error) {
+      console.error('Trending vendors error:', error)
+      throw error
+    }
+    return data || []
+  },
+
+  // Get vendors near location
+  async getVendorsNearLocation(latitude: number, longitude: number, radiusMiles = 25): Promise<Vendor[]> {
+    // This would use a proper geospatial query in production
+    // For now, return all vendors
+    return this.getAllVendors()
+  },
+
+  // Follow/unfollow vendor
+  async toggleVendorFollow(vendorId: string, userId: string): Promise<boolean> {
+    try {
+      // Check if already following
+      const { data: existingFollow } = await supabase
+        .from('vendor_followers')
+        .select('id')
+        .eq('vendor_id', vendorId)
+        .eq('user_id', userId)
+        .single()
+
+      if (existingFollow) {
+        // Unfollow
+        await supabase
+          .from('vendor_followers')
+          .delete()
+          .eq('vendor_id', vendorId)
+          .eq('user_id', userId)
+
+        // Decrement follower count
+        await supabase.rpc('decrement_vendor_followers', { vendor_id: vendorId })
+        return false
+      } else {
+        // Follow
+        await supabase
+          .from('vendor_followers')
+          .insert({ vendor_id: vendorId, user_id: userId })
+
+        // Increment follower count
+        await supabase.rpc('increment_vendor_followers', { vendor_id: vendorId })
+        return true
+      }
+    } catch (error) {
+      console.error('Toggle vendor follow error:', error)
+      throw error
+    }
+  },
+
+  // Check if user follows vendor
+  async isFollowingVendor(vendorId: string, userId: string): Promise<boolean> {
+    try {
+      const { data } = await supabase
+        .from('vendor_followers')
+        .select('id')
+        .eq('vendor_id', vendorId)
+        .eq('user_id', userId)
+        .single()
+
+      return !!data
+    } catch (error) {
+      return false
+    }
+  },
+
+  // Get vendor posts
+  async getVendorPosts(vendorId: string, limit = 20): Promise<VendorPost[]> {
+    const { data, error } = await supabase
+      .from('vendor_posts')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Vendor posts error:', error)
+      throw error
+    }
+    return data || []
+  },
+
+  // Create vendor post
+  async createVendorPost(postData: Omit<VendorPost, 'id' | 'created_at' | 'updated_at' | 'likes_count'>): Promise<VendorPost> {
+    const { data, error } = await supabase
+      .from('vendor_posts')
+      .insert({
+        ...postData,
+        likes_count: 0
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Create vendor post error:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get sample vendor data for development
+  getSampleVendors(): Vendor[] {
+    return [
+      {
+        id: 'vendor-1',
+        market_id: 'market-1',
+        name: 'Green Valley Farm',
+        specialty: 'Organic Vegetables',
+        description: 'Family-owned organic farm since 1985',
+        created_at: '2024-01-01T00:00:00Z',
+        cover_photo_url: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800&h=400&fit=crop',
+        profile_photo_url: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=200&h=200&fit=crop&crop=face',
+        bio: 'Passionate about growing the freshest organic vegetables using sustainable farming practices. Visit us at Ferry Building every Saturday!',
+        follower_count: 1250,
+        instagram_handle: '@greenvalleyfarm',
+        specialties: ['Organic Vegetables', 'Heirloom Tomatoes', 'Leafy Greens'],
+        featured_products: ['Heirloom Tomatoes', 'Baby Spinach', 'Rainbow Carrots'],
+        operating_hours: { saturday: '8:00 AM - 2:00 PM', sunday: '9:00 AM - 1:00 PM' },
+        market_locations: ['Ferry Building Farmers Market', 'Palo Alto Farmers Market'],
+        verified: true,
+        rating: 4.9,
+        review_count: 127,
+        phone: '(555) 123-4567',
+        website: 'https://greenvalleyfarm.com',
+        updated_at: '2024-06-22T00:00:00Z'
+      },
+      {
+        id: 'vendor-2',
+        market_id: 'market-2',
+        name: 'Sunrise Orchards',
+        specialty: 'Fresh Fruits',
+        description: 'Premium stone fruits and berries',
+        created_at: '2024-01-15T00:00:00Z',
+        cover_photo_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop',
+        profile_photo_url: 'https://images.unsplash.com/photo-1607532941433-304659e8198a?w=200&h=200&fit=crop&crop=face',
+        bio: 'Third-generation fruit growers specializing in the sweetest peaches, plums, and berries in the Bay Area.',
+        follower_count: 890,
+        instagram_handle: '@sunriseorchards',
+        specialties: ['Stone Fruits', 'Berries', 'Seasonal Fruits'],
+        featured_products: ['White Peaches', 'Organic Strawberries', 'Fuji Apples'],
+        operating_hours: { saturday: '7:00 AM - 3:00 PM', sunday: '8:00 AM - 2:00 PM' },
+        market_locations: ['Berkeley Farmers Market', 'Alameda Farmers Market'],
+        verified: true,
+        rating: 4.8,
+        review_count: 89,
+        phone: '(555) 987-6543',
+        website: '',
+        updated_at: '2024-06-22T00:00:00Z'
+      },
+      {
+        id: 'vendor-3',
+        market_id: 'market-3',
+        name: 'Artisan Breads Co',
+        specialty: 'Baked Goods',
+        description: 'Traditional European-style breads and pastries',
+        created_at: '2024-02-01T00:00:00Z',
+        cover_photo_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=400&fit=crop',
+        profile_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop&crop=face',
+        bio: 'Master bakers creating authentic sourdough and artisan breads using traditional methods and local grains.',
+        follower_count: 2100,
+        instagram_handle: '@artisanbreadsco',
+        specialties: ['Sourdough', 'Artisan Breads', 'Pastries'],
+        featured_products: ['Wild Sourdough', 'Croissants', 'Focaccia'],
+        operating_hours: { friday: '6:00 AM - 1:00 PM', saturday: '6:00 AM - 2:00 PM', sunday: '7:00 AM - 1:00 PM' },
+        market_locations: ['Ferry Building Farmers Market', 'Marin Farmers Market'],
+        verified: true,
+        rating: 4.7,
+        review_count: 203,
+        phone: '(555) 456-7890',
+        website: 'https://artisanbreadsco.com',
+        updated_at: '2024-06-22T00:00:00Z'
+      }
+    ]
   }
 }

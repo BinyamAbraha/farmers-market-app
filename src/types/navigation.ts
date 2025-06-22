@@ -1,6 +1,7 @@
 // src/types/navigation.ts
 
 import { Market } from './index';
+import { Vendor } from '../services/supabase';
 import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type DiscoverStackParamList = {
@@ -8,6 +9,9 @@ export type DiscoverStackParamList = {
   MapView: undefined;
   MarketDetail: {
     market: Market;
+  };
+  VendorProfile: {
+    vendor: Vendor;
   };
 };
 

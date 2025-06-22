@@ -9,13 +9,11 @@ import {
   RefreshControl,
   Image,
   FlatList,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width: screenWidth } = Dimensions.get('window');
 
 interface CommunityPost {
   id: string;
